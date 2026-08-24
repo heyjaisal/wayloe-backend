@@ -10,8 +10,8 @@ import {
 } from './auth.service.js';
 
 export const register = async (req, res) => {
-  const { username, email, password } = req.body;
-  const { user, accessToken, refreshToken } = await registerUser({ username, email, password }, req);
+  const { firstName, lastName, email, password } = req.body;
+  const { user, accessToken, refreshToken } = await registerUser({ firstName, lastName, email, password }, req);
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -19,7 +19,8 @@ export const register = async (req, res) => {
     success: true,
     data: {
       id: user._id,
-      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       profileImage: user.profileImage,
       accessToken,
@@ -37,7 +38,8 @@ export const login = async (req, res) => {
     success: true,
     data: {
       id: user._id,
-      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       profileImage: user.profileImage,
       accessToken,
@@ -71,7 +73,8 @@ export const logout = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   const { user, accessToken } = await updateUserProfile(req.user._id, {
-    username: req.body.username,
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
     profileImage: req.body.profileImage,
   });
 
@@ -79,7 +82,8 @@ export const updateProfile = async (req, res) => {
     success: true,
     data: {
       id: user._id,
-      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       profileImage: user.profileImage,
       accessToken,
@@ -94,7 +98,8 @@ export const me = async (req, res) => {
     success: true,
     data: {
       id: user._id,
-      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       profileImage: user.profileImage,
     },

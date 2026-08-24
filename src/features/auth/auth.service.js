@@ -30,13 +30,13 @@ export const clearRefreshTokenCookie = (res) => {
   });
 };
 
-export const registerUser = async ({ username, email, password }, req) => {
-  const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+export const registerUser = async ({ firstName, lastName, email, password }, req) => {
+  const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new AppError('User already exists', 409);
   }
 
-  const user = await User.create({ username, email, password });
+  const user = await User.create({ firstName, lastName, email, password });
   const refreshTokenDoc = await RefreshToken.createRefreshToken(user._id, req);
   const accessToken = generateAccessToken(user._id);
 
@@ -88,13 +88,14 @@ export const logoutUser = async (refreshToken) => {
   }
 };
 
-export const updateUserProfile = async (userId, { username, profileImage }) => {
+export const updateUserProfile = async (userId, { firstName, lastName, profileImage }) => {
   const user = await User.findById(userId);
   if (!user) {
     throw new AppError('User not found', 404);
   }
 
-  if (username !== undefined) user.username = username;
+  if (firstName !== undefined) user.firstName = firstName;
+  if (lastName !== undefined) user.lastName = lastName;
   if (profileImage !== undefined) user.profileImage = profileImage;
 
   const updatedUser = await user.save();

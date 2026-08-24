@@ -11,14 +11,15 @@ const emailSchema = z
   .toLowerCase()
   .trim();
 
-const usernameSchema = z
+const nameSchema = z
   .string()
-  .min(3, 'Username must be at least 3 characters')
-  .max(30, 'Username must be at most 30 characters')
+  .min(1, 'Name is required')
+  .max(50, 'Name must be at most 50 characters')
   .trim();
 
 export const registerSchema = z.object({
-  username: usernameSchema,
+  firstName: nameSchema,
+  lastName: nameSchema,
   email: emailSchema,
   password: passwordSchema,
 });
@@ -29,6 +30,7 @@ export const loginSchema = z.object({
 });
 
 export const updateProfileSchema = z.object({
-  username: usernameSchema.optional(),
+  firstName: nameSchema.optional(),
+  lastName: nameSchema.optional(),
   profileImage: z.string().url('Invalid URL').optional(),
 });
