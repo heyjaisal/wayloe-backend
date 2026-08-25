@@ -16,11 +16,12 @@ export const corsMiddleware = cors({
       return callback(null, true);
     }
 
-    // Dynamic pattern matching for Vercel and custom wayloe domains
+    // Dynamic pattern matching for Vercel, Render, and custom wayloe domains
     try {
       const url = new URL(origin);
       if (
         url.hostname.endsWith('.vercel.app') ||
+        url.hostname.endsWith('.onrender.com') ||
         url.hostname === 'wayloe.in' ||
         url.hostname.endsWith('.wayloe.in')
       ) {
