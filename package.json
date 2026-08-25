@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "description": "Wayloe location-based social platform API",
   "type": "module",
-  "main": "src/server.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js",
+    "dev": "nodemon server.js",
+    "start": "node server.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [],
   "author": "",
@@ -31,7 +31,6 @@
     "morgan": "^1.11.0",
     "pino": "^10.3.1",
     "pino-pretty": "^13.0.0",
-    "socket.io": "^4.8.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
