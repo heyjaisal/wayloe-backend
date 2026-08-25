@@ -41,7 +41,13 @@ export const getFavorites = async (userId, { groupId, lat, lng, maxDistance, lim
 };
 
 export const addFavorite = async (userId, favoriteData) => {
-  const { name, description, latitude, longitude, address, icon, image, groupId } = favoriteData;
+  const { name, description, latitude, longitude, address, icon, image, images, groupId } = favoriteData;
+
+  let finalImages = Array.isArray(images) ? images.filter(Boolean) : [];
+  if (finalImages.length === 0 && image) {
+    finalImages = [image];
+  }
+  const primaryImage = finalImages[0] || image || undefined;
 
   const favorite = await FavoritePlace.create({
     userId,
@@ -51,7 +57,8 @@ export const addFavorite = async (userId, favoriteData) => {
     location: { type: 'Point', coordinates: [longitude, latitude] },
     address: address || null,
     icon,
-    image,
+    image: primaryImage,
+    images: finalImages,
   });
 
   logger.info({ favoriteId: favorite._id, userId }, 'Favorite added');

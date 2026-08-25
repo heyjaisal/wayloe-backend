@@ -25,6 +25,7 @@ const favoriteBodySchema = z.object({
   address: addressObjectSchema,
   icon: z.string().optional(),
   image: z.string().trim().optional(),
+  images: z.array(z.string().trim()).optional(),
   groupId: z.string().optional(),
 });
 
@@ -111,6 +112,10 @@ const favoritePlaceSchema = new mongoose.Schema({
   image: {
     type: String,
     trim: true,
+  },
+  images: {
+    type: [String],
+    default: [],
   },
 }, {
   timestamps: true,
