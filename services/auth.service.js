@@ -8,7 +8,7 @@ import { AppError } from '../middleware/errorHandler.js';
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
   maxAge: 30 * 24 * 60 * 60 * 1000,
   path: '/',
 };
@@ -25,7 +25,7 @@ export const clearRefreshTokenCookie = (res) => {
   res.clearCookie('refresh_token', {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
   });
 };
