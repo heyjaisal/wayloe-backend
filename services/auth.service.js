@@ -88,10 +88,45 @@ export const logoutUser = async (refreshToken) => {
   }
 };
 
-export const updateUserProfile = async (userId, { firstName, lastName, profileImage }) => {
+export const checkUsernameAvailability = async (username, currentUserId) => {
+  if (!username) {
+    return { available: false, message: 'Username is required' };
+  }
+  const cleanUsername = username.toLowerCase().trim();
+  if (cleanUsername.length < 3 || cleanUsername.length > 30) {
+    return { available: false, message: 'Username must be between 3 and 30 characters' };
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(cleanUsername)) {
+    return { available: false, message: 'Username can only contain letters, numbers, and underscores' };
+  }
+
+  const existingUser = await User.findOne({
+    username: cleanUsername,
+    _id: { $ne: currentUserId },
+  });
+
+  if (existingUser) {
+    return { available: false, message: 'Username is already taken' };
+  }
+
+  return { available: true, message: 'Username is available' };
+};
+
+export const updateUserProfile = async (userId, { firstName, lastName, username, profileImage }) => {
   const user = await User.findById(userId);
   if (!user) {
     throw new AppError('User not found', 404);
+  }
+
+  if (username !== undefined && username !== null && username !== '') {
+    const cleanUsername = username.toLowerCase().trim();
+    if (cleanUsername !== user.username) {
+      const check = await checkUsernameAvailability(cleanUsername, userId);
+      if (!check.available) {
+        throw new AppError(check.message, 400);
+      }
+      user.username = cleanUsername;
+    }
   }
 
   if (firstName !== undefined) user.firstName = firstName;

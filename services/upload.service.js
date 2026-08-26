@@ -11,6 +11,7 @@ const UPLOAD_FOLDERS = {
   event: (userId) => `events/${userId}`,
   favorite: (userId) => `favorites/${userId}`,
   'group-favorite': (userId, groupId) => `favorites/groups/${groupId}/${userId}`,
+  'group-profile': (userId, groupId) => `groups/${groupId}/profile`,
   profile: (userId) => `profile/${userId}`,
 };
 
@@ -18,6 +19,7 @@ const CONTEXT_BUCKET = {
   event: 'public',
   favorite: 'private',
   'group-favorite': 'public',
+  'group-profile': 'public',
   profile: 'public',
 };
 

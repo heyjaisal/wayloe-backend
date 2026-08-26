@@ -1,4 +1,5 @@
 import FavoritePlace from '../models/FavoritePlace.js';
+import Group from '../models/Group.js';
 import { generateSignedGetUrl } from './upload.service.js';
 import { AppError } from '../middleware/errorHandler.js';
 import logger from '../utils/logger.js';
@@ -42,6 +43,14 @@ export const getFavorites = async (userId, { groupId, lat, lng, maxDistance, lim
   let scope = {};
 
   if (groupId) {
+    const group = await Group.findById(groupId);
+    if (!group) {
+      throw new AppError('Group not found', 404);
+    }
+    const isMember = group.members.some((m) => m.toString() === userId.toString());
+    if (!isMember) {
+      throw new AppError('You are not a member of this group', 403);
+    }
     scope.groupId = groupId;
   } else {
     scope.userId = userId;
@@ -113,10 +122,20 @@ export const deleteFavorite = async (userId, favoriteId) => {
     throw new AppError('Favorite not found', 404);
   }
 
-  const isOwner = favoriteToDelete.userId.toString() === userId.toString();
-
-  if (!isOwner) {
-    throw new AppError('Not authorized to delete this favorite', 403);
+  if (favoriteToDelete.groupId) {
+    const group = await Group.findById(favoriteToDelete.groupId);
+    if (!group) {
+      throw new AppError('Group not found', 404);
+    }
+    const isMember = group.members.some((m) => m.toString() === userId.toString());
+    if (!isMember) {
+      throw new AppError('Not authorized to delete this favorite', 403);
+    }
+  } else {
+    const isOwner = favoriteToDelete.userId.toString() === userId.toString();
+    if (!isOwner) {
+      throw new AppError('Not authorized to delete this favorite', 403);
+    }
   }
 
   await FavoritePlace.findByIdAndDelete(favoriteId);

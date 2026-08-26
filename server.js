@@ -14,6 +14,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import mapRoutes from './routes/map.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
+import groupRoutes from './routes/group.routes.js';
 
 process.on('unhandledRejection', (reason) => {
   logger.fatal({ err: reason }, 'Unhandled Rejection');
@@ -83,6 +84,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/groups', groupRoutes);
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ success: false, error: 'Route not found' });

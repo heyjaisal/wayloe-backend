@@ -4,6 +4,7 @@ import {
   refreshUserToken,
   logoutUser,
   updateUserProfile,
+  checkUsernameAvailability,
   getUserById,
   setRefreshTokenCookie,
   clearRefreshTokenCookie,
@@ -21,6 +22,7 @@ export const register = async (req, res) => {
       id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
+      username: user.username || null,
       email: user.email,
       profileImage: user.profileImage,
       accessToken,
@@ -40,6 +42,7 @@ export const login = async (req, res) => {
       id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
+      username: user.username || null,
       email: user.email,
       profileImage: user.profileImage,
       accessToken,
@@ -75,6 +78,7 @@ export const updateProfile = async (req, res) => {
   const { user, accessToken } = await updateUserProfile(req.user._id, {
     firstName: req.body.firstName,
     lastName: req.body.lastName,
+    username: req.body.username,
     profileImage: req.body.profileImage,
   });
 
@@ -84,6 +88,7 @@ export const updateProfile = async (req, res) => {
       id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
+      username: user.username || null,
       email: user.email,
       profileImage: user.profileImage,
       accessToken,
@@ -100,8 +105,18 @@ export const me = async (req, res) => {
       id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
+      username: user.username || null,
       email: user.email,
       profileImage: user.profileImage,
     },
+  });
+};
+
+export const checkUsername = async (req, res) => {
+  const username = req.query.username;
+  const result = await checkUsernameAvailability(username, req.user?._id);
+  res.json({
+    success: true,
+    data: result,
   });
 };

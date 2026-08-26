@@ -19,6 +19,14 @@ const nameSchema = z
   .max(50, 'Name must be at most 50 characters')
   .trim();
 
+export const usernameSchema = z
+  .string()
+  .min(3, 'Username must be at least 3 characters')
+  .max(30, 'Username must be at most 30 characters')
+  .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
+  .toLowerCase()
+  .trim();
+
 export const registerSchema = z.object({
   firstName: nameSchema,
   lastName: nameSchema,
@@ -34,6 +42,7 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   firstName: nameSchema.optional(),
   lastName: nameSchema.optional(),
+  username: usernameSchema.optional().nullable(),
   profileImage: z.string().url('Invalid URL').optional(),
 });
 
@@ -56,6 +65,16 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
     lowercase: true,
+  },
+  username: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    lowercase: true,
+    minlength: 3,
+    maxlength: 30,
+    match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
   },
   password: {
     type: String,

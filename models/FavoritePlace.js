@@ -42,14 +42,14 @@ export const addFavoriteSchema = favoriteBodySchema;
 export const uploadSignUrlSchema = z.object({
   fileName: z.string().min(1),
   fileType: z.enum(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']),
-  context: z.enum(['event', 'favorite', 'group-favorite', 'profile']),
+  context: z.enum(['event', 'favorite', 'group-favorite', 'group-profile', 'profile']),
   groupId: z.string().optional(),
 }).refine(
   (data) => {
-    if (data.context === 'group-favorite') return !!data.groupId;
+    if (data.context === 'group-favorite' || data.context === 'group-profile') return !!data.groupId;
     return true;
   },
-  { message: 'groupId is required for group-favorite uploads' }
+  { message: 'groupId is required for group uploads' }
 );
 
 const favoritePlaceSchema = new mongoose.Schema({
