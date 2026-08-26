@@ -2,6 +2,7 @@ import FavoritePlace from '../models/FavoritePlace.js';
 import Group from '../models/Group.js';
 import { generateSignedGetUrl } from './upload.service.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { publishFavoriteCreated, publishFavoriteDeleted } from './realtime.service.js';
 import logger from '../utils/logger.js';
 
 async function resolveImageUrls(urls) {
@@ -93,6 +94,19 @@ export const getFavorites = async (userId, { groupId, lat, lng, maxDistance, lim
 export const addFavorite = async (userId, favoriteData) => {
   const { name, description, latitude, longitude, address, icon, image, images, groupId } = favoriteData;
 
+  // Security: verify the authenticated user is a member of the group before creating a group favorite.
+  // Personal favorites (groupId null/undefined) skip this check — unchanged behavior.
+  if (groupId) {
+    const group = await Group.findById(groupId);
+    if (!group) {
+      throw new AppError('Group not found', 404);
+    }
+    const isMember = group.members.some((m) => m.toString() === userId.toString());
+    if (!isMember) {
+      throw new AppError('You are not a member of this group', 403);
+    }
+  }
+
   let finalImages = Array.isArray(images) ? images.filter(Boolean) : [];
   if (finalImages.length === 0 && image) {
     finalImages = [image];
@@ -113,7 +127,16 @@ export const addFavorite = async (userId, favoriteData) => {
 
   logger.info({ favoriteId: favorite._id, userId }, 'Favorite added');
 
-  return await resolveFavoriteImages(favorite);
+  const resolved = await resolveFavoriteImages(favorite);
+
+  // Publish realtime event AFTER successful MongoDB write — group favorites only.
+  // publishFavoriteCreated is internally wrapped in try/catch; a Socket.IO failure
+  // does not affect the API response or the already-persisted MongoDB document.
+  if (favorite.groupId) {
+    publishFavoriteCreated(favorite.groupId, resolved);
+  }
+
+  return resolved;
 };
 
 export const deleteFavorite = async (userId, favoriteId) => {
@@ -138,5 +161,13 @@ export const deleteFavorite = async (userId, favoriteId) => {
     }
   }
 
+  // Capture groupId BEFORE deleting — the document will be gone after findByIdAndDelete.
+  const groupId = favoriteToDelete.groupId;
+
   await FavoritePlace.findByIdAndDelete(favoriteId);
+
+  // Publish realtime event AFTER successful MongoDB delete — group favorites only.
+  if (groupId) {
+    publishFavoriteDeleted(groupId, favoriteId);
+  }
 };

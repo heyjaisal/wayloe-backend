@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import env from './config/env.js';
 import connectDB from './config/database.js';
 import { corsMiddleware } from './config/cors.js';
+import { attachSocket } from './config/socket.js';
 import logger from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -93,6 +94,7 @@ app.use('/api', (_req, res) => {
 app.use(errorHandler);
 
 const server = http.createServer(app);
+attachSocket(server);
 
 const shutdown = async (signal) => {
   logger.info({ signal }, 'Received shutdown signal');
