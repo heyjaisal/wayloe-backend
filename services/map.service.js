@@ -1,6 +1,42 @@
 import FavoritePlace from '../models/FavoritePlace.js';
+import { generateSignedGetUrl } from './upload.service.js';
 import { AppError } from '../middleware/errorHandler.js';
 import logger from '../utils/logger.js';
+
+async function resolveImageUrls(urls) {
+  if (!urls || urls.length === 0) return urls;
+
+  return Promise.all(
+    urls.map(async (url) => {
+      if (!url) return url;
+      try {
+        const { signedUrl } = await generateSignedGetUrl(url);
+        return signedUrl;
+      } catch (err) {
+        logger.error({ err, url }, 'Failed to generate signed GET URL for favorite image');
+        return url;
+      }
+    })
+  );
+}
+
+async function resolveFavoriteImages(favorite) {
+  const obj = typeof favorite.toObject === 'function' ? favorite.toObject() : { ...favorite };
+
+  if (Array.isArray(obj.images) && obj.images.length > 0) {
+    const validUrls = obj.images.filter(Boolean);
+    obj.images = await resolveImageUrls(validUrls);
+    obj.image = obj.images[0] || obj.image;
+  } else if (obj.image) {
+    const [resolved] = await resolveImageUrls([obj.image]);
+    obj.image = resolved;
+    obj.images = [resolved];
+  } else {
+    obj.images = [];
+  }
+
+  return obj;
+}
 
 export const getFavorites = async (userId, { groupId, lat, lng, maxDistance, limit }) => {
   let scope = {};
@@ -12,10 +48,12 @@ export const getFavorites = async (userId, { groupId, lat, lng, maxDistance, lim
     scope.groupId = null;
   }
 
+  let favorites;
+
   if (lat && lng) {
     const radiusMeters = maxDistance * 1000;
 
-    const favorites = await FavoritePlace.aggregate([
+    const rawFavorites = await FavoritePlace.aggregate([
       {
         $geoNear: {
           near: { type: 'Point', coordinates: [lng, lat] },
@@ -28,6 +66,8 @@ export const getFavorites = async (userId, { groupId, lat, lng, maxDistance, lim
       { $limit: limit },
     ]);
 
+    favorites = await Promise.all(rawFavorites.map(resolveFavoriteImages));
+
     return {
       data: favorites,
       nearby: true,
@@ -36,7 +76,8 @@ export const getFavorites = async (userId, { groupId, lat, lng, maxDistance, lim
     };
   }
 
-  const favorites = await FavoritePlace.find(scope).sort({ createdAt: -1 });
+  const rawFavorites = await FavoritePlace.find(scope).sort({ createdAt: -1 });
+  favorites = await Promise.all(rawFavorites.map(resolveFavoriteImages));
   return { data: favorites };
 };
 
@@ -63,7 +104,7 @@ export const addFavorite = async (userId, favoriteData) => {
 
   logger.info({ favoriteId: favorite._id, userId }, 'Favorite added');
 
-  return favorite;
+  return await resolveFavoriteImages(favorite);
 };
 
 export const deleteFavorite = async (userId, favoriteId) => {

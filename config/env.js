@@ -15,6 +15,7 @@ const envSchema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().min(1, { message: 'AWS_SECRET_ACCESS_KEY is required' }),
   AWS_REGION: z.string().default('ap-south-1'),
   AWS_PUBLIC_BUCKET: z.string().min(1, { message: 'AWS_PUBLIC_BUCKET is required' }),
+  AWS_PRIVATE_BUCKET: z.string().min(1, { message: 'AWS_PRIVATE_BUCKET is required' }),
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
