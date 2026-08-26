@@ -146,9 +146,105 @@ export function attachSocket(httpServer) {
       logger.info({ socketId: socket.id, userId, groupId, room }, 'Socket left group room');
     });
 
+    // ── start_live_location ──────────────────────────────────────────────────
+    // Client requests to start broadcasting their GPS position to the group.
+    // Server verifies group membership before allowing.
+    socket.on('start_live_location', async ({ groupId } = {}) => {
+      if (!isValidObjectId(groupId)) {
+        socket.emit('error', { message: 'Invalid group ID format' });
+        return;
+      }
+
+      try {
+        const group = await Group.findById(groupId);
+        if (!group) {
+          socket.emit('error', { message: 'Group not found' });
+          return;
+        }
+
+        const isMember = group.members.some((m) => m.toString() === userId);
+        if (!isMember) {
+          logger.warn({ socketId: socket.id, userId, groupId }, 'start_live_location rejected — not a member');
+          socket.emit('error', { message: 'Not authorized for this group' });
+          return;
+        }
+
+        // Tag this socket so location_update events can verify the groupId
+        // without a DB lookup on every position update.
+        socket.liveGroupId = groupId;
+
+        // Ensure the socket is in the group room (idempotent with join_group).
+        const room = `group:${groupId}`;
+        await socket.join(room);
+
+        // Broadcast to ALL room members including the sender so the sender's
+        // own liveMembers map stays consistent (socket.to excludes the sender).
+        io.to(room).emit('member_started_sharing', {
+          userId,
+          user: {
+            firstName: socket.user.firstName,
+            lastName: socket.user.lastName,
+            profileImage: socket.user.profileImage || null,
+          },
+        });
+
+        logger.info({ socketId: socket.id, userId, groupId }, 'Live location sharing started');
+      } catch (err) {
+        logger.error({ err, socketId: socket.id, userId, groupId }, 'Error processing start_live_location');
+        socket.emit('error', { message: 'Failed to start live location' });
+      }
+    });
+
+    // ── location_update ──────────────────────────────────────────────────────
+    // Client sends a throttled GPS position. Server validates the groupId
+    // against socket.liveGroupId (set in start_live_location) so a client
+    // cannot spoof coordinates to an arbitrary group room.
+    // No per-update logging to avoid flooding the log.
+    socket.on('location_update', ({ groupId, lat, lng, timestamp } = {}) => {
+      // Validate the groupId matches the one the socket registered for.
+      if (!socket.liveGroupId || socket.liveGroupId !== groupId) return;
+
+      // Basic coordinate sanity check.
+      if (
+        typeof lat !== 'number' || lat < -90 || lat > 90 ||
+        typeof lng !== 'number' || lng < -180 || lng > 180
+      ) return;
+
+      const room = `group:${groupId}`;
+      // Broadcast to everyone in the room including the sender so they can
+      // see themselves on the map if desired; frontend deduplicates using userId.
+      io.to(room).emit('member_location', {
+        userId,
+        lat,
+        lng,
+        timestamp: typeof timestamp === 'number' ? timestamp : Date.now(),
+      });
+    });
+
+    // ── stop_live_location ───────────────────────────────────────────────────
+    socket.on('stop_live_location', ({ groupId } = {}) => {
+      const activeGroupId = socket.liveGroupId;
+      if (!activeGroupId) return;
+
+      socket.liveGroupId = null;
+
+      const room = `group:${activeGroupId}`;
+      // Broadcast to ALL room members including the sender so their own marker
+      // is removed from their local map (socket.to would exclude the sender).
+      io.to(room).emit('member_stopped_sharing', { userId });
+      logger.info({ socketId: socket.id, userId, groupId: activeGroupId }, 'Live location sharing stopped');
+    });
+
     // ── disconnect ───────────────────────────────────────────────────────────
-    // Socket.IO automatically removes the socket from all rooms on disconnect.
+    // If this socket was sharing live location, auto-broadcast stop so other
+    // members' markers disappear cleanly without waiting for a timeout.
     socket.on('disconnect', (reason) => {
+      if (socket.liveGroupId) {
+        const room = `group:${socket.liveGroupId}`;
+        // Use io.to instead of socket.to — socket has already left all rooms.
+        io.to(room).emit('member_stopped_sharing', { userId });
+        logger.info({ socketId: socket.id, userId, groupId: socket.liveGroupId }, 'Live location auto-stopped on disconnect');
+      }
       logger.info({ socketId: socket.id, userId, reason }, 'Socket disconnected');
     });
   });
