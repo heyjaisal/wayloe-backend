@@ -17,12 +17,12 @@ export const uploadImage = async (req, res) => {
 
   const { context, groupId } = req.body;
 
-  const VALID_CONTEXTS = ['event', 'favorite', 'group-favorite', 'group-profile', 'profile'];
+  const VALID_CONTEXTS = ['event', 'favorite', 'group-favorite', 'group-profile', 'group-message', 'profile'];
   if (!VALID_CONTEXTS.includes(context)) {
     return res.status(400).json({ success: false, error: 'Invalid upload context' });
   }
 
-  const requiresGroupId = ['group-favorite', 'group-profile'];
+  const requiresGroupId = ['group-favorite', 'group-profile', 'group-message'];
   if (requiresGroupId.includes(context) && !groupId) {
     return res.status(400).json({ success: false, error: 'groupId is required for this upload context' });
   }

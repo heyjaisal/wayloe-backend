@@ -18,6 +18,14 @@ export function initializeRealtime(ioInstance) {
 }
 
 /**
+ * Returns the Socket.IO server instance.
+ * Used by controllers to emit events directly.
+ */
+export function getIO() {
+  return io;
+}
+
+/**
  * Publish a favorite_created event to all members of the group room
  * (excluding the creator's own socket if desired — handled on the frontend
  * by deduplicating against the API response).

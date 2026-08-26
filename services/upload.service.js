@@ -12,6 +12,7 @@ const UPLOAD_FOLDERS = {
   favorite: (userId) => `favorites/${userId}`,
   'group-favorite': (userId, groupId) => `favorites/groups/${groupId}/${userId}`,
   'group-profile': (userId, groupId) => `groups/${groupId}/profile`,
+  'group-message': (userId, groupId) => `groups/${groupId}/messages/${userId}`,
   profile: (userId) => `profile/${userId}`,
 };
 
@@ -20,6 +21,7 @@ const CONTEXT_BUCKET = {
   favorite: 'private',
   'group-favorite': 'public',
   'group-profile': 'public',
+  'group-message': 'public',
   profile: 'public',
 };
 
@@ -121,7 +123,7 @@ export const uploadToS3 = async (userId, { fileBuffer, mimetype, originalName, c
   const bucketType = CONTEXT_BUCKET[context] || 'public';
   const bucketName = resolveBucket(bucketType);
 
-  const folder = context === 'group-favorite'
+  const folder = (context === 'group-favorite' || context === 'group-profile' || context === 'group-message')
     ? folderBuilder(userId, groupId)
     : folderBuilder(userId);
 
@@ -158,7 +160,7 @@ export const generateSignedUrl = async (userId, { fileName, fileType, context, g
   const bucketType = CONTEXT_BUCKET[context] || 'public';
   const bucketName = resolveBucket(bucketType);
 
-  const folder = context === 'group-favorite'
+  const folder = (context === 'group-favorite' || context === 'group-profile' || context === 'group-message')
     ? folderBuilder(userId, groupId)
     : folderBuilder(userId);
 

@@ -16,6 +16,7 @@ import authRoutes from './routes/auth.routes.js';
 import mapRoutes from './routes/map.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import groupRoutes from './routes/group.routes.js';
+import messageRoutes from './routes/message.routes.js';
 
 process.on('unhandledRejection', (reason) => {
   logger.fatal({ err: reason }, 'Unhandled Rejection');
@@ -86,6 +87,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/messages', messageRoutes);
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ success: false, error: 'Route not found' });
@@ -94,7 +96,8 @@ app.use('/api', (_req, res) => {
 app.use(errorHandler);
 
 const server = http.createServer(app);
-attachSocket(server);
+const io = attachSocket(server);
+app.set('io', io);
 
 const shutdown = async (signal) => {
   logger.info({ signal }, 'Received shutdown signal');
