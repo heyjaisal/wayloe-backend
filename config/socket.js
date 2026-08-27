@@ -235,7 +235,47 @@ export function attachSocket(httpServer) {
       logger.info({ socketId: socket.id, userId, groupId: activeGroupId }, 'Live location sharing stopped');
     });
 
+    // ── start_navigation ─────────────────────────────────────────────────────
+    // Client starts solo route navigation. Joins their personal nav room.
+    socket.on('start_navigation', () => {
+      const navRoom = `nav:${userId}`;
+      socket.join(navRoom);
+      socket.isNavigating = true;
+      logger.info({ socketId: socket.id, userId }, 'Solo navigation started');
+    });
+
+    // ── nav_location_update ──────────────────────────────────────────────────
+    // Client sends throttled GPS position during solo navigation.
+    socket.on('nav_location_update', ({ lat, lng, heading, timestamp } = {}) => {
+      if (!socket.isNavigating) return;
+
+      if (
+        typeof lat !== 'number' || lat < -90 || lat > 90 ||
+        typeof lng !== 'number' || lng < -180 || lng > 180
+      ) return;
+
+      const navRoom = `nav:${userId}`;
+      // Echo back to the same user's sockets (e.g. other tabs) — also
+      // consumed by the same client for marker update confirmation.
+      io.to(navRoom).emit('nav_position', {
+        lat,
+        lng,
+        heading: typeof heading === 'number' ? heading : null,
+        timestamp: typeof timestamp === 'number' ? timestamp : Date.now(),
+      });
+    });
+
+    // ── stop_navigation ──────────────────────────────────────────────────────
+    socket.on('stop_navigation', () => {
+      if (!socket.isNavigating) return;
+      socket.isNavigating = false;
+      const navRoom = `nav:${userId}`;
+      socket.leave(navRoom);
+      logger.info({ socketId: socket.id, userId }, 'Solo navigation stopped');
+    });
+
     // ── disconnect ───────────────────────────────────────────────────────────
+
     // If this socket was sharing live location, auto-broadcast stop so other
     // members' markers disappear cleanly without waiting for a timeout.
     socket.on('disconnect', (reason) => {
