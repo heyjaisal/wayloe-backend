@@ -3,6 +3,7 @@ import Group from '../models/Group.js';
 import { generateSignedGetUrl } from './upload.service.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { publishFavoriteCreated, publishFavoriteDeleted } from './realtime.service.js';
+import { moderateFields } from './moderation.service.js';
 import logger from '../utils/logger.js';
 
 async function resolveImageUrls(urls) {
@@ -104,6 +105,11 @@ export const addFavorite = async (userId, favoriteData) => {
     const isMember = group.members.some((m) => m.toString() === userId.toString());
     if (!isMember) {
       throw new AppError('You are not a member of this group', 403);
+    }
+
+    const moderation = await moderateFields({ name, description });
+    if (!moderation.approved) {
+      throw new AppError('Content violates community guidelines', 400);
     }
   }
 

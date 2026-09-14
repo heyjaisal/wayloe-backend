@@ -1,9 +1,15 @@
 import Group from '../models/Group.js';
 import FavoritePlace from '../models/FavoritePlace.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { moderateFields } from './moderation.service.js';
 import logger from '../utils/logger.js';
 
 export const createGroup = async (userId, { name, description, profileImage }) => {
+  const moderation = await moderateFields({ name, description });
+  if (!moderation.approved) {
+    throw new AppError('Content violates community guidelines', 400);
+  }
+
   const group = await Group.create({
     name,
     description: description || '',
