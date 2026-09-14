@@ -1,0 +1,27 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: wayloe-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: wayloe
+
+  backend:
+    build: .
+    container_name: wayloe-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./.env
+    environment:
+      MONGODB_URL: mongodb://mongo:27017/wayloe
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:
